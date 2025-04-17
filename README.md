@@ -3,7 +3,93 @@
 ![WhatsApp Image 2025-04-15 at 11 05 32_7d23d80c](https://github.com/user-attachments/assets/611421f0-0db3-4a09-8651-eff46903c735)
 
 
-```markdown
+
+### ⚙️ Workflow Breakdown
+
+This workflow uses **🧠 LLaMA 3.3-70B Versatile** (served via **⚡️ Groq API**) to generate professional emails from chat-like instructions. It also connects to **📊 Google Sheets** for contact data and sends emails via **📧 Gmail**.
+
+---
+
+#### 1. 🟢 **Start / Trigger: `When chat message received`**
+- 🗨️ Accepts natural language input (like a message from a chatbot or UI).
+- Example:
+  > "Email raj@softmatrix.com and tell him the launch is postponed. Subject: Launch Update"
+
+---
+
+#### 2. 🤖 **AI Agent Node (LLM: LLaMA 3.3-70B via Groq)**
+- Uses **Meta’s LLaMA 3.3-70B Versatile** model.
+- Prompted to:
+  - 📥 Extract `emailRecipient`
+  - 📝 Create a clean `messageSubject`
+  - ✍️ Generate a structured and professional `messageBody`
+- All emails must end with:
+
+  ```
+  Best regards,
+
+  Hassan
+  ```
+
+- Returns a response like:
+
+  ```json
+  {
+    "emailRecipient": "raj@softmatrix.com",
+    "messageSubject": "Launch Update",
+    "messageBody": "Dear Raj,\n\nThe launch is postponed to next week due to some final tweaks.\n\nBest regards,\nHassan"
+  }
+  ```
+
+---
+
+#### 3. 🧼 **Function Node: `Clean & Parse JSON`**
+- 🧹 Cleans up the raw AI output:
+  - Removes ``` backticks
+  - Escapes line breaks
+  - Parses it into real JSON
+- ✅ Makes the data usable for downstream nodes
+
+---
+
+#### 4. 🧱 **Set Node: `Set Fields`**
+- Extracts values like:
+  - `emailRecipient`
+  - `messageSubject`
+  - `messageBody`
+- Prepares them for sending through Gmail or saving elsewhere.
+
+---
+
+#### 5. 📊 **Google Sheets Node: `Contact Database`**
+- Looks up or stores contacts in a Google Sheet.
+- Expected format:
+  | Name | Email | Company | Location |
+- Can:
+  - Autofill missing info
+  - Store new contacts
+  - Log sent emails
+
+---
+
+#### 6. 📬 **Gmail Node: `Send Email`**
+- Sends the email using Gmail:
+  - ✉️ **To**: `emailRecipient`
+  - 🏷️ **Subject**: `messageSubject`
+  - 📝 **Body**: `messageBody`
+- Result: A polished, AI-crafted email delivered automatically!
+
+---
+
+#### 7. 🧠 **(Optional) Simple Memory Node**
+- Temporarily stores context during a session.
+- Useful for:
+  - Remembering names or tone
+  - Improving flow in multi-step instructions
+
+---
+
+
 # Email Automation with AI Agent and Google Sheets
 
 This repository contains a visual workflow built using [n8n](https://n8n.io/), an open-source workflow automation tool. It uses an AI agent to extract and compose emails based on user input and sends them automatically using Gmail. Additionally, it reads contact data from a Google Sheet.

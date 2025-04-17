@@ -118,8 +118,3 @@ Guidelines the AI follows:
 ## 📄 License
 
 MIT © 2025 Hassan
-```
-
----
-
-Let me know if you'd like the `README.md` in a downloadable file too.

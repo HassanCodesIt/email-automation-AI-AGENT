@@ -1,4 +1,4 @@
-# Email-automation-AI-AGENT
+# email-automation-AI-AGENT
 
 ![WhatsApp Image 2025-04-15 at 11 05 32_7d23d80c](https://github.com/user-attachments/assets/611421f0-0db3-4a09-8651-eff46903c735)
 

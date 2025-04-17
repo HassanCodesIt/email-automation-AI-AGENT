@@ -1,0 +1,221 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        40,
+        0
+      ],
+      "id": "7a9770dc-c528-43fe-84eb-95daa29c6707",
+      "name": "When chat message received",
+      "webhookId": "83d57510-f0b0-477a-b918-ec9ca7d3708f"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Extract the recipient email, subject, and message from the text below, and return it as JSON in this format:\n{\n  \"emailRecipient\": \"\",\n  \"messageSubject\": \"\",\n  \"messageBody\": \"\"\n}\n\nText:\n{{ $json.chatInput }}\n",
+        "options": {
+          "systemMessage": "You are an AI assistant tasked with composing professional emails based on user input. Extract the recipient's email address, the subject, and the body of the email from the provided text. Ensure the email is clear, concise, and maintains a professional tone.\n\nReturn the result in the following JSON format:\n\n{\n  \"emailRecipient\": \"recipient@example.com\",\n  \"messageSubject\": \"Subject of the Email\",\n  \"messageBody\": \"Body of the email message.\"\n}\n\nGuidelines:\n- Use a formal greeting (e.g., \"Dear [Recipient's Name],\").\n- Maintain a courteous and professional tone throughout.\n- Structure the email with clear paragraphs: an introduction, the main message, and a conclusion.\n- End with a formal closing (e.g., \"Best regards,\" followed by the sender's name).\n- Ensure proper grammar, punctuation, and spelling.\n- Do not include any code blocks or markdown formatting in the output.\n- always sign off by Hassan\n\nthere must be a line space atleast above the regards\n\n\nlet the mail be atleast 2 or 3 line"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        260,
+        0
+      ],
+      "id": "cb9d0ddd-22b8-4720-b183-df3569321f6e",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        220,
+        200
+      ],
+      "id": "f6ba377d-4275-4cec-ba82-93c9a727e231",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "24TkY7FdujC8qwyH",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 50
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        360,
+        220
+      ],
+      "id": "50ff2bca-8d8b-4bad-a2d8-ef00c01864f1",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2b2926c8-7c66-42cf-8527-90165861e3cd",
+              "name": "messageSubject",
+              "value": "={{ $json.messageSubject }}",
+              "type": "string"
+            },
+            {
+              "id": "328402fe-5c4c-4589-9d05-3413c361f7e3",
+              "name": "messageBody",
+              "value": "={{ $json.messageBody }}",
+              "type": "string"
+            },
+            {
+              "id": "990f94b7-c0d8-4013-920f-1b06c4d09d59",
+              "name": "emailRecipient",
+              "value": "={{ $json.emailRecipient }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        860,
+        0
+      ],
+      "id": "9a175a68-c3b4-4c0e-bf64-8e21a4b5ed90",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.emailRecipient }}",
+        "subject": "={{ $json.messageSubject }}",
+        "emailType": "text",
+        "message": "={{ $json.messageBody }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1060,
+        0
+      ],
+      "id": "827b9f63-50ea-49b2-acf3-50b189f5e104",
+      "name": "Gmail",
+      "webhookId": "9467e37e-fcc3-4652-8449-5fe12b8ff73c",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "TmRz68MtHlvJV1rg",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputItems = $input.all();\nconst raw = inputItems[0]?.json?.output || '';\n\n// Remove code block ticks like ```json\nlet cleaned = raw.replace(/```(json)?/g, '').trim();\n\n// Extract JSON string between the first { and last }\nconst jsonMatch = cleaned.match(/\\{[\\s\\S]*\\}/);\nif (!jsonMatch) {\n  throw new Error('No JSON object found in cleaned string:\\n' + cleaned);\n}\n\nlet jsonString = jsonMatch[0];\n\n// Escape any newlines inside strings\njsonString = jsonString.replace(/\"([^\"]*)\"/g, (match) => {\n  return match.replace(/\\n/g, '\\\\n');\n});\n\ntry {\n  const parsed = JSON.parse(jsonString);\n  return [{ json: parsed }];\n} catch (err) {\n  // Force the error into a string (works in JS and TS-safe)\n  const message = err instanceof Error ? err.message : String(err);\n  throw new Error('Failed to parse extracted JSON:\\n' + jsonString + '\\n\\nError: ' + message);\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        620,
+        0
+      ],
+      "id": "5c939206-8554-4ac1-8200-08270fe40e38",
+      "name": "Code"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b4808840-1dd5-4a73-8816-aa6638c1f8e3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3e9b79daea098ad7f2cbc8b552547ae4dee94d6b9f56ad3a662e50afce84e51d"
+  },
+  "id": "ItQ4lKP7dNWfw7VX",
+  "tags": []
+}
